@@ -1,0 +1,18 @@
+course: CA4
+exercise: 2
+date: 2014-03-04
+surname: de Oliveira Barreiros Junior
+forename: Willian
+email: guns945@gmail.com
+
+Part 1:
+The modifications needed to implement the loadxi instruction were:
+1 - Add the states for the loadxi instruction (very similar 
+to load),
+2 - Modify the control signals' logic to suport the new 
+instruction, and
+3 - Modify the ALU to suport the increment of the index.
+
+In order to implement the instruction four states were created (one more when comparing with the load instruction) as a first try, being three states to perform the load and one to perform the increment. Later it was tried to optimise the instruction, making it three states. This was seen as impossible because the increment operation needed both the ALU and RF writing access and there is no moment in any of the three first states where both resources are free at the same time.
+
+For the first three states the control signals have the same values as if they were executing a regular load instruction. On the fourth state a add operation needed to be caried. The operation assert the ctl_rf_ld and ctl_rf_alu preexisting signals, set the ALU operation as '0000' and assert a new signal: ctl_inc. This signal is used to select the valid input and output registers for the increment, which are: Ri = Ri + 1, Ri being the index register of loadxi. 

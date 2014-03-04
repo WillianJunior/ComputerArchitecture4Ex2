@@ -189,14 +189,14 @@ sim_m1 input =
        st_lea0, st_lea1, st_load0, st_load1, st_load2,
        st_store0, st_store1, st_store2, st_jump0, st_jump1,
        st_jumpf0, st_jumpf1, st_jumpt0, st_jumpt1,
-       st_jal0, st_jal1]
+       st_jal0, st_jal1, st_loadxi0, st_loadxi1, st_loadxi2, st_loadxi3]
         = ctl_state
 
 -- Define names for the individual control signals.
 
       (ctl_rf_ld,  ctl_rf_pc,  ctl_rf_alu, ctl_rf_sd,  ctl_alu_op,
        ctl_ir_ld,  ctl_pc_ld,  ctl_pc_ad,  ctl_ad_ld,  ctl_ad_alu,
-       ctl_ma_pc,  ctl_x_pc,   ctl_y_ad,   ctl_sto)
+       ctl_ma_pc,  ctl_x_pc, ctl_inc,   ctl_y_ad,   ctl_sto)
         = ctl_signals
       (ctl_alu_a,ctl_alu_b,ctl_alu_c,ctl_alu_d) = ctl_alu_op
 
@@ -247,6 +247,11 @@ sim_m1 input =
          string "      st_jal0 = ", bit st_jal0,
          string "\n  ",
          string "      st_jal1 = ", bit st_jal1,
+         string "   st_loadxi0 = ", bit st_loadxi0,
+         string "   st_loadxi1 = ", bit st_loadxi1,
+         string "   st_loadxi2 = ", bit st_loadxi2,
+         string "\n  ",
+         string "   st_loadxi3 = ", bit st_loadxi3,
 
          string "\n\nControl signals\n  ",
            string " ctl_alu_a  = ", bit ctl_alu_a,
@@ -265,8 +270,10 @@ sim_m1 input =
            string " ctl_ad_alu = ",  bit ctl_ad_alu,
            string "\n  ",
            string " ctl_ma_pc  = ",  bit ctl_ma_pc,
+           string " ctl_inc    = ",   bit ctl_inc,
            string " ctl_x_pc   = ",   bit ctl_x_pc,
            string " ctl_y_ad   = ",   bit ctl_y_ad,
+           string "\n  ",
            string " ctl_sto    = ",    bit ctl_sto,
 
          string "\n\nDatapath\n  ",
@@ -452,7 +459,7 @@ findMnemonic [opfield, bfield] =
          "shiftr", "trap", "expandXX", "expandRX"]
       mnemonics_RX =
         ["lea", "load", "store", "jump",
-         "jumpf", "jumpt", "jal", "nop",
+         "jumpf", "jumpt", "jal", "loadxi",
          "nop", "nop", "nop", "nop",
          "nop", "nop", "nop", "nop"]
   in if op==15
