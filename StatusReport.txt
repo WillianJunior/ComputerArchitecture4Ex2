@@ -9,10 +9,350 @@ Part 1:
 The modifications needed to implement the loadxi instruction were:
 1 - Add the states for the loadxi instruction (very similar 
 to load),
-2 - Modify the control signals' logic to suport the new 
+2 - Modify the control signals' logic to support the new 
 instruction, and
-3 - Modify the ALU to suport the increment of the index.
+3 - Modify the ALU to support the increment of the index.
 
-In order to implement the instruction four states were created (one more when comparing with the load instruction) as a first try, being three states to perform the load and one to perform the increment. Later it was tried to optimise the instruction, making it three states. This was seen as impossible because the increment operation needed both the ALU and RF writing access and there is no moment in any of the three first states where both resources are free at the same time.
+In order to implement the instruction four states were created 
+(one more when comparing with the load instruction) as a first try, 
+being three states to perform the load and one to perform the increment. 
+Later it was tried to optimise the instruction, making it three states. 
+This was seen as impossible because the increment operation needed both 
+the ALU and RF writing access and there is no moment in any of the three 
+first states where both resources are free at the same time.
 
-For the first three states the control signals have the same values as if they were executing a regular load instruction. On the fourth state a add operation needed to be caried. The operation assert the ctl_rf_ld and ctl_rf_alu preexisting signals, set the ALU operation as '0000' and assert a new signal: ctl_inc. This signal is used to select the valid input and output registers for the increment, which are: Ri = Ri + 1, Ri being the index register of loadxi. 
+For the first three states the control signals have the same values 
+as if they were executing a regular load instruction. On the fourth 
+state a add operation needed to be carried. The operation assert the 
+ctl_rf_ld and ctl_rf_alu pre-existing signals, set the ALU operation as 
+'0000' and assert a new signal: ctl_inc. This signal is used to select 
+the valid input and output registers for the increment, which are: 
+Ri = Ri + 1, Ri being the index register of loadxi. The only changes made 
+to the ALU regards the extension of one of the muxes to receive a 
+hardwired n bits one (i.e. 000..01) and set the output register to be 
+the same as the input register.
+
+Below there is a example of execution of a loadxi instruction. It's 
+important to highlight that the first two cycles were omitted since 
+they are the same for every instruction (fetch and dispatch). The next 
+three cycles are the same as an ordinary load instruction. On the last 
+cycle the increment of the index variable happens. As it's shown, the 
+solution seems wrong since it states that R5 = 4 and fffe at the same 
+time. Actually the M1run program is wrong. The M1run is sensible to 
+registers update and it assumes that any register updated is the one 
+referenced by if_d. This is true for the load, but the increment happens 
+on ir_sa. The program is proved to be correct since we can see that the 
+index register is incremented, as seen in the snippets below the loadxi 
+trace.
+
+-----------------------------------------------------------------------------------
+-------------------------------- Execution trace ----------------------------------
+-----------------------------------------------------------------------------------
+
+........................................................................
+Clock cycle 99
+........................................................................
+Clock cycle 100
+........................................................................
+Clock cycle 101
+Computer system inputs
+         reset=0 dma=0 dma_a=0000 dma_d=0000
+ctl_start = 0
+
+Control state
+   st_instr_fet = 0  st_dispatch = 0       st_add = 0       st_sub = 0
+        st_mul0 = 0     st_cmplt = 0     st_cmpeq = 0     st_cmpgt = 0
+       st_trap0 = 0      st_lea0 = 0      st_lea1 = 0     st_load0 = 0
+       st_load1 = 0     st_load2 = 0    st_store0 = 0    st_store1 = 0
+      st_store2 = 0     st_jump0 = 0     st_jump1 = 0    st_jumpf0 = 0
+      st_jumpf1 = 0    st_jumpt0 = 0    st_jumpt1 = 0      st_jal0 = 0
+        st_jal1 = 0   st_loadxi0 = 1   st_loadxi1 = 0   st_loadxi2 = 0
+     st_loadxi3 = 0
+
+Control signals
+   ctl_alu_a  = 1 ctl_alu_b  = 1 ctl_alu_c  = 0 ctl_alu_d  = 0
+   ctl_rf_ld  = 0 ctl_rf_pc  = 0 ctl_rf_alu = 0 ctl_rf_sd  = 0
+   ctl_ir_ld  = 0 ctl_pc_ld  = 1 ctl_ad_ld  = 1 ctl_ad_alu = 0
+   ctl_ma_pc  = 1 ctl_inc    = 0 ctl_x_pc   = 1 ctl_y_ad   = 0
+   ctl_sto    = 0
+
+Datapath
+    ir = f537  pc = 000c  ad = 0013   a = 0003   b = 0000   r = 000d
+     x = 000c   y = 0000   p = 0018  ma = 000c  md = 0003 cnd = 1
+
+Memory
+   ctl_sto = 0      m_sto = 0
+     m_addr = 000c  m_real_addr = 0c  m_data = 0003  m_out =0018
+
+
+........................................................................
+Clock cycle 102
+Computer system inputs
+         reset=0 dma=0 dma_a=0000 dma_d=0000
+ctl_start = 0
+
+Control state
+   st_instr_fet = 0  st_dispatch = 0       st_add = 0       st_sub = 0
+        st_mul0 = 0     st_cmplt = 0     st_cmpeq = 0     st_cmpgt = 0
+       st_trap0 = 0      st_lea0 = 0      st_lea1 = 0     st_load0 = 0
+       st_load1 = 0     st_load2 = 0    st_store0 = 0    st_store1 = 0
+      st_store2 = 0     st_jump0 = 0     st_jump1 = 0    st_jumpf0 = 0
+      st_jumpf1 = 0    st_jumpt0 = 0    st_jumpt1 = 0      st_jal0 = 0
+        st_jal1 = 0   st_loadxi0 = 0   st_loadxi1 = 1   st_loadxi2 = 0
+     st_loadxi3 = 0
+
+Control signals
+   ctl_alu_a  = 0 ctl_alu_b  = 0 ctl_alu_c  = 0 ctl_alu_d  = 0
+   ctl_rf_ld  = 0 ctl_rf_pc  = 0 ctl_rf_alu = 0 ctl_rf_sd  = 0
+   ctl_ir_ld  = 0 ctl_pc_ld  = 0 ctl_ad_ld  = 1 ctl_ad_alu = 1
+   ctl_ma_pc  = 0 ctl_inc    = 0 ctl_x_pc   = 0 ctl_y_ad   = 1
+   ctl_sto    = 0
+
+Datapath
+    ir = f537  pc = 000d  ad = 0018   a = 0003   b = 0000   r = 001b
+     x = 0003   y = 0018   p = 0012  ma = 0018  md = 0003 cnd = 1
+
+Memory
+   ctl_sto = 0      m_sto = 0
+     m_addr = 0018  m_real_addr = 18  m_data = 0003  m_out =0012
+
+
+........................................................................
+Clock cycle 103
+Computer system inputs
+         reset=0 dma=0 dma_a=0000 dma_d=0000
+ctl_start = 0
+
+Control state
+   st_instr_fet = 0  st_dispatch = 0       st_add = 0       st_sub = 0
+        st_mul0 = 0     st_cmplt = 0     st_cmpeq = 0     st_cmpgt = 0
+       st_trap0 = 0      st_lea0 = 0      st_lea1 = 0     st_load0 = 0
+       st_load1 = 0     st_load2 = 0    st_store0 = 0    st_store1 = 0
+      st_store2 = 0     st_jump0 = 0     st_jump1 = 0    st_jumpf0 = 0
+      st_jumpf1 = 0    st_jumpt0 = 0    st_jumpt1 = 0      st_jal0 = 0
+        st_jal1 = 0   st_loadxi0 = 0   st_loadxi1 = 0   st_loadxi2 = 1
+     st_loadxi3 = 0
+
+Control signals
+   ctl_alu_a  = 0 ctl_alu_b  = 0 ctl_alu_c  = 0 ctl_alu_d  = 0
+   ctl_rf_ld  = 1 ctl_rf_pc  = 0 ctl_rf_alu = 0 ctl_rf_sd  = 0
+   ctl_ir_ld  = 0 ctl_pc_ld  = 0 ctl_ad_ld  = 0 ctl_ad_alu = 0
+   ctl_ma_pc  = 0 ctl_inc    = 0 ctl_x_pc   = 0 ctl_y_ad   = 0
+   ctl_sto    = 0
+
+Datapath
+    ir = f537  pc = 000d  ad = 001b   a = 0003   b = 0000   r = 0003
+     x = 0003   y = 0000   p = fffe  ma = 001b  md = 0003 cnd = 1
+
+Memory
+   ctl_sto = 0      m_sto = 0
+     m_addr = 001b  m_real_addr = 1b  m_data = 0003  m_out =fffe
+
+Register file update: R5 := fffe
+
+........................................................................
+Clock cycle 104
+Computer system inputs
+         reset=0 dma=0 dma_a=0000 dma_d=0000
+ctl_start = 1
+
+Control state
+   st_instr_fet = 0  st_dispatch = 0       st_add = 0       st_sub = 0
+        st_mul0 = 0     st_cmplt = 0     st_cmpeq = 0     st_cmpgt = 0
+       st_trap0 = 0      st_lea0 = 0      st_lea1 = 0     st_load0 = 0
+       st_load1 = 0     st_load2 = 0    st_store0 = 0    st_store1 = 0
+      st_store2 = 0     st_jump0 = 0     st_jump1 = 0    st_jumpf0 = 0
+      st_jumpf1 = 0    st_jumpt0 = 0    st_jumpt1 = 0      st_jal0 = 0
+        st_jal1 = 0   st_loadxi0 = 0   st_loadxi1 = 0   st_loadxi2 = 0
+     st_loadxi3 = 1
+
+Control signals
+   ctl_alu_a  = 0 ctl_alu_b  = 0 ctl_alu_c  = 0 ctl_alu_d  = 0
+   ctl_rf_ld  = 1 ctl_rf_pc  = 0 ctl_rf_alu = 1 ctl_rf_sd  = 0
+   ctl_ir_ld  = 0 ctl_pc_ld  = 0 ctl_ad_ld  = 0 ctl_ad_alu = 0
+   ctl_ma_pc  = 0 ctl_inc    = 1 ctl_x_pc   = 0 ctl_y_ad   = 0
+   ctl_sto    = 0
+
+Datapath
+    ir = f537  pc = 000d  ad = 001b   a = 0003   b = 0000   r = 0004
+     x = 0003   y = 0001   p = 0004  ma = 001b  md = 0003 cnd = 1
+
+Memory
+   ctl_sto = 0      m_sto = 0
+     m_addr = 001b  m_real_addr = 1b  m_data = 0003  m_out =fffe
+
+Register file update: R5 := 0004
+
+************************************************************************
+Executed instruction:  loadxi  R5,0008[R3]   effective address = 0008
+R5 := fffe was loaded in cycle 103
+R5 := 0004 was loaded in cycle 104
+Processor state:    pc = 000d  ir = f537  ad = 001b
+************************************************************************
+
+...
+
+************************************************************************
+Executed instruction:  loadxi  R5,0008[R3]   effective address = 0008
+R5 := 0028 was loaded in cycle 122
+R5 := 0005 was loaded in cycle 123
+Processor state:    pc = 000d  ir = f537  ad = 001c
+************************************************************************
+
+...
+
+************************************************************************
+Executed instruction:  loadxi  R5,0008[R3]   effective address = 0008
+R5 := 0019 was loaded in cycle 147
+R5 := 0006 was loaded in cycle 148
+Processor state:    pc = 000d  ir = f537  ad = 001d
+************************************************************************
+
+-----------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+
+Part 2:
+A way to implement a signed integers multiplier is by embedding the
+operation in parallel into the existing datapath. This is done by
+creating new states and adding only one 16 bits full added. The 
+implementation consists in using the ALU to continuously shift one of 
+the operands to the left while the full adder is incrementing the 
+output of the ALU with its pre-existing value. The shifted result from 
+the ALU will pass through a bitwise 'and' operation with the fanned out 
+bit from the second operand's current position (i.e. regb[i], i=number 
+of current state). After the 16 shifts the operation is then done. 
+Below there is a simplified sketch of the instruction, regarding the 
+states:
+
+mul0: alu_op = shl, counter = 0, 
+  assert[ctl_inc, ctl_y_ad, ctl_mult]
+    -- start the counter and shift for the first time
+mul1: alu_op = shl, counter = 1, assert[ctl_inc, ctl_y_ad, ctl_mult]
+    -- shift the second time and do the first add from last shift
+mul1: alu_op = shl, counter = 2, assert[ctl_inc, ctl_y_ad, ctl_mult]
+    -- shift the third time and do the second add from last shift
+.
+.
+.
+mul15: alu_op = shl, counter = 15, assert[ctl_inc, ctl_y_ad, ctl_mult]
+    -- shift the sixteenth time and do the fifteenth add from last shift
+mul16: assert[ctl_rf_pc, ctl_mult_end, ctl_rf_ld]
+    -- do the last (sixteenth) add and put the output value on the register
+end
+
+Now, regarding the circuit (obs: the modification is between the input 
+and output of the ALU operation):
+let's alter from the output of the register file: 'a' and 'b' 
+and the assignment of the output:
+p  = mux1w ctl_rf_pc            -- data input to register file
+    (mux1w ctl_rf_alu memdat r)
+    pc
+
+The implementation of the new instruction consists of two changes to 
+the existing code.
+
+First change: 
+-----------------------------------------------------------------
+y = mux2w (ctl_inc, ctl_y_ad) b ad onen counter   -- alu input 2
+p = mux1w ctl_rf_pc
+    (mux1w ctl_rf_alu memdat r)
+    (mux1w ctl_mult_end pc full_adder_output)
+-----------------------------------------------------------------
+Now 'p' can also get the final result from the full adder and 'a' can be 
+shifted. The 'ctl_rf_pc' signal name should be changed and to avoid 
+confusion. The assertion of 'ctl_inc' and 'ctl_y_ad' signals are not 
+meaningful but this is a way to keep the datapath depth unchanged.
+
+Second change:
+-----------------------------------------------------------------
+full_adder_output = full_adder mul_inc r_mul_alu_out
+mul_inc = reg n one (mux1w ctl_mult zero full_adder_output)
+r_mul_alu_out = reg n one (mux1w ctl_mult zero mul_alu_out)
+mul_alu_out = andn n r $ fanout (muxn n counter b)
+-----------------------------------------------------------------
+obs: andn => bitwise and of two n bit words
+     muxn => n words mux, 1 bit words
+-----------------------------------------------------------------
+Here it's important to highlight that the added circuitry is in 
+parallel with the ALU, consisting of a mux, a fanout unit and an and 
+gate. It's reasonable to assume that this serial combination isn't 
+slower than the ALU, thereby, there is no change in the maximum latency 
+of the critical parh. One other important aspect is the use of the 
+'r_mul_alu_out' register to break the 'shift and add' stage into two 
+separated stages. This not only make the implementation of the new 
+operation possible without damaging the overall performance (as stated 
+before), but also increases the multiplication performance by making it 
+a sort of pipeline, where both shift and increment operations happen at 
+the same time.
+
+This solution, however, does not apply for negative numbers. There are 
+two ways of dealing with it. You can either make sure that the 
+registers values are always positive by software (which would be at 
+least very bad designing) or add a couple more stages to the operation.
+
+The changes to the state machine of multiplication follow the sketch below:
+
+premul0: alu_op = inv
+    -- do the inversion of the first operand ('a')
+premul1: alu_op = inv,
+  assert[ctl_mult_pos_a]
+    -- do the inversion of the second operand ('b') and set the value of 'pos_a'
+premul2:
+  assert[ctl_mult_pos_b]
+    -- set the value of 'pos_b'
+mul0: alu_op = shl, counter = 0, 
+  assert[ctl_x_mul_pos, ctl_pos_b, ctl_inc, ctl_y_ad, ctl_mult]
+    -- start the counter and shift for the first time
+mul1: alu_op = shl, counter = 1,
+  assert[ctl_x_mul_pos, ctl_pos_b, ctl_inc, ctl_y_ad, ctl_mult]
+    -- shift the second time and do the first add from last shift
+mul1: alu_op = shl, counter = 2, 
+  assert[ctl_x_mul_pos, ctl_pos_b, ctl_inc, ctl_y_ad, ctl_mult]
+    -- shift the third time and do the second add from last shift
+.
+.
+.
+mul15: alu_op = shl, counter = 15,
+  assert[ctl_x_mul_pos, ctl_pos_b, ctl_inc, ctl_y_ad, ctl_mult]
+    -- shift the sixteenth time and do the fifteenth add from last shift
+mul16: 
+  assert[ctl_mult]
+    -- do the last (sixteenth) add
+postmul0: alu_op = inv
+  assert[ctl_mult_hold]
+    -- invert the final result and
+postmul1:
+  assert[ctl_mult_end, ctl_mult_hold, ctl_rf_ld]
+    -- put the output value on the register (can be the 
+              inverted or non-inverted)
+end
+
+From the previous implementation we'll have to do some modifications:
+-----------------------------------------------------------------
+x = mux1w ctl_x_mul_pos (mux1w ctl_x_pc a pc)     -- alu input 1
+                        (mux1w ctl_pos_b b pos_b)
+y = mux2w (ctl_inc, ctl_y_ad) b ad onen counter   -- alu input 2
+p = mux1w ctl_rf_pc
+    (mux1w ctl_rf_alu memdat r)
+    (mux1w ctl_mult_end pc full_adder_output)
+inv_not_needed = and2 (xnor2 (a!!0) (b!!0)) postmul
+
+ctl_rf_pc = orw [..., inv_not_needed]
+
+full_adder_output = full_adder mul_inc r_mul_alu_out
+mul_inc = reg n (inv ctl_mult_hold) (mux1w ctl_mult zero full_adder_output)
+r_mul_alu_out = reg n one (mux1w ctl_mult zero mul_alu_out)
+mul_alu_out = andn n r $ fanout (muxn n counter pos_a)
+
+pos_a = reg n ctl_mult_pos_a (mux1w (a!!0) a r)
+pos_b = reg n ctl_mult_pos_b (mux1w (b!!0) b r)
+-----------------------------------------------------------------
+The signed integer multiplication can be done by making all numbers 
+positive, performing the multiplication, and finally, inverting the output, 
+if necessary. In comparison with the last (positive values only) 
+implementation, the only changes regards the creation of few new states and 
+the addition of one extra level of mutiplexers to the critical path. The 
+extra level of multiplexers can be merged with the pre-existing levels, 
+making a single 2-bits selector multiplexer, and thus, not impacting in a 
+severe way the system overall performance.

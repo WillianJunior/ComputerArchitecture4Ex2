@@ -182,8 +182,8 @@ datapath control memdat = (ma,md,cond,a,b,ir,pc,ad,ovfl,r,x,y,p)
 -- Internal processor signals
   
       onen = (fanout (n-1) zero) ++ [one]
-      x = mux1w ctl_x_pc a pc  -- alu input 1
-      y = mux2w (ctl_inc, ctl_y_ad) b ad onen onen                       -- alu input 2
+      x = mux1w ctl_x_pc a pc                       -- alu input 1
+      y = mux2w (ctl_inc, ctl_y_ad) b ad onen onen  -- alu input 2
       rf_sa = mux1w ctl_rf_sd ir_sa ir_d  -- a = reg[rf_sa]
       rf_sb = ir_sb                       -- b = reg[rf_sb]
       p  = mux1w ctl_rf_pc            -- data input to register file
